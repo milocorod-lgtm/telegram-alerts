@@ -64,16 +64,30 @@ export async function setVibrationPreference(enabled) {
   await AsyncStorage.setItem(VIBRATION_KEY, enabled ? 'true' : 'false');
 }
 
+function ensureNativeModule() {
+  if (!RingtonePickerModule) {
+    throw new Error(
+      'El modulo nativo de tonos no esta disponible. Reinstala la ultima version del APK.'
+    );
+  }
+  return RingtonePickerModule;
+}
+
 export function pickRingtone(currentUri) {
-  return RingtonePickerModule.pickRingtone(currentUri || '');
+  return ensureNativeModule().pickRingtone(currentUri || '');
 }
 
 export function previewRingtone(uri) {
-  RingtonePickerModule.playRingtone(uri || '');
+  try {
+    ensureNativeModule().playRingtone(uri || '');
+  } catch (e) {
+    // No tumbar la app si el modulo no esta; el llamador muestra el aviso.
+    throw e;
+  }
 }
 
 export function stopPreview() {
-  RingtonePickerModule.stopRingtone();
+  if (RingtonePickerModule) RingtonePickerModule.stopRingtone();
 }
 
 function uuid() {
@@ -92,7 +106,9 @@ export async function triggerIncomingCall({ chatName, keyword }) {
   RNCallKeep.displayIncomingCall(id, label, label, 'generic', false);
 
   const ringtone = await getRingtonePreference();
-  RingtonePickerModule.playRingtone(ringtone ? ringtone.uri : '');
+  if (RingtonePickerModule) {
+    RingtonePickerModule.playRingtone(ringtone ? ringtone.uri : '');
+  }
 
   const vibrationOn = await getVibrationPreference();
   if (vibrationOn) {
@@ -103,7 +119,7 @@ export async function triggerIncomingCall({ chatName, keyword }) {
 }
 
 export function stopAlarmSound() {
-  RingtonePickerModule.stopRingtone();
+  if (RingtonePickerModule) RingtonePickerModule.stopRingtone();
   Vibration.cancel();
 }
 

@@ -80,7 +80,11 @@ function AlarmSettingsView() {
   }
 
   function handlePreview() {
-    previewRingtone(ringtone && ringtone.uri);
+    try {
+      previewRingtone(ringtone && ringtone.uri);
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo reproducir el tono: ' + e.message);
+    }
   }
 
   async function handleVibrationToggle(value) {
