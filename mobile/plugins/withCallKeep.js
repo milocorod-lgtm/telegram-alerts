@@ -7,6 +7,9 @@ const path = require('path');
 const PERMISSIONS = [
   'android.permission.BIND_TELECOM_CONNECTION_SERVICE',
   'android.permission.FOREGROUND_SERVICE',
+  // Android 14+ exige este permiso granular para un foreground service de tipo
+  // "phoneCall"; sin el, el sistema mata la app con SecurityException.
+  'android.permission.FOREGROUND_SERVICE_PHONE_CALL',
   'android.permission.READ_PHONE_STATE',
   'android.permission.MANAGE_OWN_CALLS',
   'android.permission.USE_FULL_SCREEN_INTENT',

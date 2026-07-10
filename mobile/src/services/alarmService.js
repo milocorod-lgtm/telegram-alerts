@@ -32,22 +32,37 @@ let activeCallId = null;
 
 export async function setupCallKeep() {
   if (isSetup) return;
-  await RNCallKeep.setup(callKeepOptions);
-  RNCallKeep.setAvailable(true);
-  if (Platform.OS === 'android') {
-    // Registra la cuenta de llamadas en el sistema (necesario para que la
-    // pantalla de llamada nativa aparezca) y engancha los eventos de Android.
-    RNCallKeep.registerPhoneAccount(callKeepOptions);
-    RNCallKeep.registerAndroidEvents();
+  try {
+    await RNCallKeep.setup(callKeepOptions);
+    if (typeof RNCallKeep.setAvailable === 'function') {
+      RNCallKeep.setAvailable(true);
+    }
+    if (Platform.OS === 'android') {
+      // Registra la cuenta de llamadas en el sistema (necesario para que la
+      // pantalla de llamada nativa aparezca) y engancha los eventos de Android.
+      if (typeof RNCallKeep.registerPhoneAccount === 'function') {
+        RNCallKeep.registerPhoneAccount(callKeepOptions);
+      }
+      if (typeof RNCallKeep.registerAndroidEvents === 'function') {
+        RNCallKeep.registerAndroidEvents();
+      }
+    }
+    isSetup = true;
+  } catch (e) {
+    // Nunca dejar que un fallo de CallKeep tumbe la app al arrancar.
+    isSetup = false;
   }
-  isSetup = true;
 }
 
 // Abre los ajustes del sistema donde el usuario habilita la cuenta de llamadas
 // de TelegramAlarm (paso obligatorio una sola vez en Android).
 export function openPhoneAccountSettings() {
-  if (Platform.OS === 'android') {
-    RNCallKeep.openPhoneAccounts();
+  try {
+    if (Platform.OS === 'android' && typeof RNCallKeep.openPhoneAccounts === 'function') {
+      RNCallKeep.openPhoneAccounts();
+    }
+  } catch (e) {
+    // no-op
   }
 }
 
