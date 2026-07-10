@@ -69,3 +69,20 @@ async def register_device(body: DeviceIn):
 @app.get("/api/history")
 async def read_history():
     return list_history()
+
+
+@app.get("/api/debug/test-push")
+async def debug_test_push():
+    """Diagnostico temporal: intenta enviar un push al dispositivo registrado
+    y devuelve el resultado o el error EXACTO de Firebase."""
+    from database import get_device_token
+    from push import send_alarm_push
+
+    token = get_device_token()
+    if not token:
+        return {"ok": False, "stage": "token", "error": "No hay dispositivo registrado (fcm_token vacio)"}
+    try:
+        message_id = send_alarm_push(token, "PRUEBA", "XAUUSD SELL", "Mensaje de prueba de diagnostico")
+        return {"ok": True, "message_id": message_id, "token_preview": token[:20] + "..."}
+    except Exception as e:
+        return {"ok": False, "stage": "fcm_send", "error": f"{type(e).__name__}: {e}"}
