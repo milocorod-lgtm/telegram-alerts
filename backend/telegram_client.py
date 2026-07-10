@@ -29,16 +29,31 @@ async def stop_telegram_client():
 
 async def list_dialogs():
     dialogs = await client.get_dialogs()
-    return [
+    result = []
+
+    # "Mensajes guardados" (chat contigo mismo): util para PROBAR la alarma,
+    # ya que puedes escribirte a ti mismo sin depender de un canal ajeno.
+    me = await client.get_me()
+    result.append(
         {
-            "chat_id": str(d.id),
-            "name": d.name,
-            "is_channel": d.is_channel,
-            "is_group": d.is_group,
+            "chat_id": str(me.id),
+            "name": "Mensajes guardados (prueba)",
+            "is_channel": False,
+            "is_group": False,
         }
-        for d in dialogs
-        if d.is_channel or d.is_group
-    ]
+    )
+
+    for d in dialogs:
+        if d.is_channel or d.is_group:
+            result.append(
+                {
+                    "chat_id": str(d.id),
+                    "name": d.name,
+                    "is_channel": d.is_channel,
+                    "is_group": d.is_group,
+                }
+            )
+    return result
 
 
 def _normalize(s: str) -> str:
