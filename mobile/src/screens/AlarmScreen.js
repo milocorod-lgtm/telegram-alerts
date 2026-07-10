@@ -11,7 +11,6 @@ import {
   answerCall,
   rejectCall,
   getActiveCallId,
-  openPhoneAccountSettings,
 } from '../services/alarmService';
 
 export default function AlarmScreen({ route, navigation }) {
@@ -113,15 +112,6 @@ function AlarmSettingsView() {
         <Text style={styles.label}>Vibracion</Text>
         <Switch value={vibration} onValueChange={handleVibrationToggle} />
       </View>
-
-      <Text style={styles.warn}>
-        IMPORTANTE: para que la alarma se vea como una llamada real (incluso con
-        el telefono bloqueado), activa una vez la cuenta de llamadas de
-        TelegramAlarm en los ajustes del sistema.
-      </Text>
-      <TouchableOpacity style={[styles.button, styles.warnButton]} onPress={openPhoneAccountSettings}>
-        <Text style={styles.buttonText}>Activar cuenta de llamadas</Text>
-      </TouchableOpacity>
     </View>
   );
 }
@@ -132,8 +122,6 @@ const styles = StyleSheet.create({
   ringtoneName: { fontSize: 14, color: '#555', marginBottom: 12 },
   button: { backgroundColor: '#1976d2', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 10 },
   secondaryButton: { backgroundColor: '#555' },
-  warnButton: { backgroundColor: '#c62828' },
-  warn: { fontSize: 13, color: '#c62828', marginTop: 24, lineHeight: 18 },
   buttonText: { color: '#fff', fontWeight: 'bold' },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 20 },
 
