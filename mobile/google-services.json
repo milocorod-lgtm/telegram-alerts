@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "278856324340",
+    "project_id": "smstocall-alertspro",
+    "storage_bucket": "smstocall-alertspro.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:278856324340:android:3cea9d7b85b25539cffaa1",
+        "android_client_info": {
+          "package_name": "com.milocorod.telegramalarm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3X3FnvHZXIZz9ZQSaczTWAEAox6XWgPE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

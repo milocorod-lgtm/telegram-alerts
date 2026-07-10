@@ -1,0 +1,127 @@
+import { NativeModules, Vibration } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import RNCallKeep from 'react-native-callkeep';
+
+const { RingtonePickerModule } = NativeModules;
+
+const RINGTONE_KEY = '@telegramalarm/ringtone';
+const VIBRATION_KEY = '@telegramalarm/vibration';
+
+const callKeepOptions = {
+  android: {
+    alertTitle: 'Permiso necesario',
+    alertDescription:
+      'TelegramAlarm necesita este permiso para mostrar la alarma como una llamada entrante',
+    cancelButton: 'Cancelar',
+    okButton: 'Aceptar',
+    imageName: 'ic_launcher',
+    additionalPermissions: [],
+    selfManaged: true,
+    foregroundService: {
+      channelId: 'com.milocorod.telegramalarm.call',
+      channelName: 'Alarma TelegramAlarm',
+      notificationTitle: 'TelegramAlarm esta activo',
+    },
+  },
+};
+
+let isSetup = false;
+let activeCallId = null;
+
+export async function setupCallKeep() {
+  if (isSetup) return;
+  await RNCallKeep.setup(callKeepOptions);
+  RNCallKeep.setAvailable(true);
+  isSetup = true;
+}
+
+export function addCallKeepListeners({ onAnswer, onEnd }) {
+  RNCallKeep.addEventListener('answerCall', ({ callUUID }) => {
+    stopAlarmSound();
+    if (onAnswer) onAnswer(callUUID);
+  });
+  RNCallKeep.addEventListener('endCall', ({ callUUID }) => {
+    stopAlarmSound();
+    if (onEnd) onEnd(callUUID);
+  });
+}
+
+export async function getRingtonePreference() {
+  const raw = await AsyncStorage.getItem(RINGTONE_KEY);
+  return raw ? JSON.parse(raw) : null; // { uri, title }
+}
+
+export async function setRingtonePreference(ringtone) {
+  await AsyncStorage.setItem(RINGTONE_KEY, JSON.stringify(ringtone));
+}
+
+export async function getVibrationPreference() {
+  const raw = await AsyncStorage.getItem(VIBRATION_KEY);
+  return raw === null ? true : raw === 'true';
+}
+
+export async function setVibrationPreference(enabled) {
+  await AsyncStorage.setItem(VIBRATION_KEY, enabled ? 'true' : 'false');
+}
+
+export function pickRingtone(currentUri) {
+  return RingtonePickerModule.pickRingtone(currentUri || '');
+}
+
+export function previewRingtone(uri) {
+  RingtonePickerModule.playRingtone(uri || '');
+}
+
+export function stopPreview() {
+  RingtonePickerModule.stopRingtone();
+}
+
+function uuid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+export async function triggerIncomingCall({ chatName, keyword }) {
+  await setupCallKeep();
+  const id = uuid();
+  activeCallId = id;
+  const label = keyword ? `${chatName} - ${keyword}` : chatName;
+  RNCallKeep.displayIncomingCall(id, label, label, 'generic', false);
+
+  const ringtone = await getRingtonePreference();
+  RingtonePickerModule.playRingtone(ringtone ? ringtone.uri : '');
+
+  const vibrationOn = await getVibrationPreference();
+  if (vibrationOn) {
+    Vibration.vibrate([500, 1000, 500, 1000], true);
+  }
+
+  return id;
+}
+
+export function stopAlarmSound() {
+  RingtonePickerModule.stopRingtone();
+  Vibration.cancel();
+}
+
+export function answerCall(id = activeCallId) {
+  if (!id) return;
+  stopAlarmSound();
+  RNCallKeep.answerIncomingCall(id);
+  RNCallKeep.endCall(id);
+  activeCallId = null;
+}
+
+export function rejectCall(id = activeCallId) {
+  if (!id) return;
+  stopAlarmSound();
+  RNCallKeep.rejectCall(id);
+  activeCallId = null;
+}
+
+export function getActiveCallId() {
+  return activeCallId;
+}
