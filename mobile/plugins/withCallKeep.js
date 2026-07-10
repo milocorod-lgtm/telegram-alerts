@@ -79,13 +79,19 @@ function withRingtonePickerRegistration(config) {
       return config;
     }
 
-    // Expo SDK 50 (Kotlin) usa la forma:
-    //   PackageList(this).packages.apply { ... }
-    // Inyectamos add(RingtonePickerPackage()) justo dentro del bloque apply.
-    if (contents.includes('PackageList(this).packages.apply {')) {
+    // Expo SDK 50 (Kotlin) usa la forma directa:
+    //   return PackageList(this).packages
+    // La envolvemos en .apply { add(...) } que agrega el paquete y devuelve la lista.
+    if (contents.includes('return PackageList(this).packages\n')) {
+      contents = contents.replace(
+        'return PackageList(this).packages\n',
+        'return PackageList(this).packages.apply {\n              add(RingtonePickerPackage())\n            }\n'
+      );
+    } else if (contents.includes('PackageList(this).packages.apply {')) {
+      // Forma con bloque apply preexistente
       contents = contents.replace(
         'PackageList(this).packages.apply {',
-        'PackageList(this).packages.apply {\n            add(RingtonePickerPackage())'
+        'PackageList(this).packages.apply {\n              add(RingtonePickerPackage())'
       );
     } else if (contents.includes('val packages = PackageList(this).packages')) {
       // Forma Kotlin con variable intermedia
@@ -103,8 +109,7 @@ function withRingtonePickerRegistration(config) {
       );
     } else {
       throw new Error(
-        'withCallKeep: no se encontro donde registrar RingtonePickerPackage en MainApplication. ' +
-          'Revisa la plantilla de Expo.'
+        'withCallKeep: no se encontro donde registrar RingtonePickerPackage en MainApplication.'
       );
     }
 
