@@ -1,4 +1,4 @@
-import { NativeModules, Vibration } from 'react-native';
+import { NativeModules, Vibration, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNCallKeep from 'react-native-callkeep';
 
@@ -7,6 +7,9 @@ const { RingtonePickerModule } = NativeModules;
 const RINGTONE_KEY = '@telegramalarm/ringtone';
 const VIBRATION_KEY = '@telegramalarm/vibration';
 
+// NO usamos selfManaged: queremos que CallKeep muestre la pantalla de llamada
+// NATIVA del sistema (via ConnectionService), que Android ya sabe mostrar sobre
+// la pantalla de bloqueo. Requiere habilitar una vez la "cuenta de llamadas".
 const callKeepOptions = {
   android: {
     alertTitle: 'Permiso necesario',
@@ -16,7 +19,6 @@ const callKeepOptions = {
     okButton: 'Aceptar',
     imageName: 'ic_launcher',
     additionalPermissions: [],
-    selfManaged: true,
     foregroundService: {
       channelId: 'com.milocorod.telegramalarm.call',
       channelName: 'Alarma TelegramAlarm',
@@ -32,7 +34,21 @@ export async function setupCallKeep() {
   if (isSetup) return;
   await RNCallKeep.setup(callKeepOptions);
   RNCallKeep.setAvailable(true);
+  if (Platform.OS === 'android') {
+    // Registra la cuenta de llamadas en el sistema (necesario para que la
+    // pantalla de llamada nativa aparezca) y engancha los eventos de Android.
+    RNCallKeep.registerPhoneAccount(callKeepOptions);
+    RNCallKeep.registerAndroidEvents();
+  }
   isSetup = true;
+}
+
+// Abre los ajustes del sistema donde el usuario habilita la cuenta de llamadas
+// de TelegramAlarm (paso obligatorio una sola vez en Android).
+export function openPhoneAccountSettings() {
+  if (Platform.OS === 'android') {
+    RNCallKeep.openPhoneAccounts();
+  }
 }
 
 export function addCallKeepListeners({ onAnswer, onEnd }) {
