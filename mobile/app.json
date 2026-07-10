@@ -5,9 +5,19 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f1115"
+    },
     "android": {
       "package": "com.milocorod.telegramalarm",
       "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f1115"
+      },
       "permissions": [
         "READ_PHONE_STATE",
         "FOREGROUND_SERVICE",
@@ -31,6 +41,11 @@
       ],
       "@react-native-firebase/app",
       "./plugins/withCallKeep.js"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "36cf17a0-e469-4d60-9860-d786cc998143"
+      }
+    }
   }
 }
