@@ -16,8 +16,10 @@ def init_firebase():
     _initialized = True
 
 
-def send_alarm_push(fcm_token: str, chat_name: str, keyword: str, message_preview: str):
-    """Envia un push data-only: la app decide como mostrarlo (CallKeep), no Android."""
+def send_alarm_push(fcm_token: str, chat_name: str, keyword: str, message_preview: str, call_text: str = ""):
+    """Envia un push data-only: la app decide como mostrarlo (CallKeep), no Android.
+    call_text es el texto personalizado que el usuario quiere ver en la pantalla
+    de llamada (ej: 'A trabajar Senal de Trading')."""
     init_firebase()
     message = messaging.Message(
         data={
@@ -25,6 +27,7 @@ def send_alarm_push(fcm_token: str, chat_name: str, keyword: str, message_previe
             "chat_name": chat_name or "",
             "keyword": keyword or "",
             "message_preview": (message_preview or "")[:200],
+            "call_text": call_text or "",
         },
         token=fcm_token,
         android=messaging.AndroidConfig(

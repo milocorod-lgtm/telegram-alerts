@@ -19,7 +19,7 @@ export function fetchConfig() {
   return request('/api/config');
 }
 
-export function saveConfig({ chatId, chatName, mode, keywords }) {
+export function saveConfig({ chatId, chatName, mode, keywords, callText }) {
   return request('/api/config', {
     method: 'POST',
     body: JSON.stringify({
@@ -27,6 +27,7 @@ export function saveConfig({ chatId, chatName, mode, keywords }) {
       chat_name: chatName,
       mode,
       keywords,
+      call_text: callText || '',
     }),
   });
 }

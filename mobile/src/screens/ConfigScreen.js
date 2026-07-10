@@ -18,6 +18,7 @@ export default function ConfigScreen({ navigation }) {
   const [mode, setMode] = useState('keywords'); // 'all' | 'keywords'
   const [keywords, setKeywords] = useState([]);
   const [keywordInput, setKeywordInput] = useState('');
+  const [callText, setCallText] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -35,6 +36,7 @@ export default function ConfigScreen({ navigation }) {
       }
       setMode(config.mode || 'keywords');
       setKeywords(config.keywords || []);
+      setCallText(config.call_text || '');
     } catch (e) {
       Alert.alert('Error', 'No se pudo conectar con el backend: ' + e.message);
     } finally {
@@ -67,6 +69,7 @@ export default function ConfigScreen({ navigation }) {
         chatName: selectedChat.name,
         mode,
         keywords,
+        callText,
       });
       Alert.alert('Guardado', 'La configuracion se guardo correctamente');
     } catch (e) {
@@ -143,6 +146,19 @@ export default function ConfigScreen({ navigation }) {
         </View>
       )}
 
+      <Text style={styles.label}>Texto que aparece en la llamada</Text>
+      <Text style={styles.hint}>
+        Lo que veras en la pantalla de la alarma cuando se dispare (ej: "A
+        trabajar Senal de Trading"). Si lo dejas vacio, se muestra el chat y la
+        palabra detectada.
+      </Text>
+      <TextInput
+        style={styles.callTextInput}
+        value={callText}
+        onChangeText={setCallText}
+        placeholder="A trabajar Senal de Trading"
+      />
+
       <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={saving}>
         <Text style={styles.saveButtonText}>{saving ? 'Guardando...' : 'Guardar'}</Text>
       </TouchableOpacity>
@@ -170,6 +186,7 @@ const styles = StyleSheet.create({
   empty: { padding: 12, color: '#888' },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
   input: { flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, marginRight: 8 },
+  callTextInput: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, marginTop: 4 },
   addButton: { backgroundColor: '#1976d2', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10 },
   addButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 },

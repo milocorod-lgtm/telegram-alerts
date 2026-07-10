@@ -129,11 +129,22 @@ function uuid() {
   });
 }
 
-export async function triggerIncomingCall({ chatName, keyword }) {
+export async function triggerIncomingCall({ chatName, keyword, callText }) {
   await setupCallKeep();
+
+  // Cierra cualquier "llamada" anterior que no se haya terminado bien; si no,
+  // Android puede rechazar la nueva y no mostrar la pantalla (pasaba la 2a vez).
+  try {
+    RNCallKeep.endAllCalls();
+  } catch (e) {
+    // no-op
+  }
+
   const id = uuid();
   activeCallId = id;
-  const label = keyword ? `${chatName} - ${keyword}` : chatName;
+  // Etiqueta que se ve en la pantalla de llamada: si el usuario definio un
+  // texto personalizado, se usa ese; si no, cae al chat + palabra clave.
+  const label = callText || (keyword ? `${chatName} - ${keyword}` : chatName);
   RNCallKeep.displayIncomingCall(id, label, label, 'generic', false);
 
   const ringtone = await getRingtonePreference();

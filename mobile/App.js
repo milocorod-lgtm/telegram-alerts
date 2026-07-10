@@ -31,6 +31,7 @@ export default function App() {
         navigationRef.navigate('Alarm', {
           chatName: data.chat_name,
           keyword: data.keyword,
+          callText: data.call_text,
           triggered: true,
         });
       }

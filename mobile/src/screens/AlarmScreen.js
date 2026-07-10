@@ -19,13 +19,18 @@ export default function AlarmScreen({ route, navigation }) {
 
   if (params.triggered) {
     return (
-      <IncomingCallView chatName={params.chatName} keyword={params.keyword} navigation={navigation} />
+      <IncomingCallView
+        chatName={params.chatName}
+        keyword={params.keyword}
+        callText={params.callText}
+        navigation={navigation}
+      />
     );
   }
   return <AlarmSettingsView />;
 }
 
-function IncomingCallView({ chatName, keyword, navigation }) {
+function IncomingCallView({ chatName, keyword, callText, navigation }) {
   function handleAccept() {
     answerCall(getActiveCallId());
     navigation.navigate('Config');
@@ -39,7 +44,7 @@ function IncomingCallView({ chatName, keyword, navigation }) {
   return (
     <View style={styles.callContainer}>
       <Text style={styles.callLabel}>Alerta de Telegram</Text>
-      <Text style={styles.callChat}>{chatName || 'Chat desconocido'}</Text>
+      <Text style={styles.callChat}>{callText || chatName || 'Chat desconocido'}</Text>
       <Text style={styles.callKeyword}>{keyword ? `Palabra: ${keyword}` : ''}</Text>
 
       <View style={styles.callButtonsRow}>

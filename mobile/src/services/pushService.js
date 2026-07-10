@@ -25,7 +25,11 @@ export async function initPush() {
 export async function handleAlarmMessage(remoteMessage) {
   const data = (remoteMessage && remoteMessage.data) || {};
   if (data.type !== 'alarm_trigger') return;
-  await triggerIncomingCall({ chatName: data.chat_name, keyword: data.keyword });
+  await triggerIncomingCall({
+    chatName: data.chat_name,
+    keyword: data.keyword,
+    callText: data.call_text,
+  });
 }
 
 export function onForegroundAlarm(callback) {

@@ -92,5 +92,6 @@ async def _on_new_message(event):
         return
 
     chat_name = config.get("chat_name") or ""
+    call_text = config.get("call_text") or ""
     save_history(chat_name, keyword, text[:200])
-    send_alarm_push(token, chat_name, keyword, text[:200])
+    send_alarm_push(token, chat_name, keyword, text[:200], call_text)

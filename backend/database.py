@@ -22,9 +22,15 @@ def init_db():
                 chat_id TEXT,
                 chat_name TEXT,
                 mode TEXT NOT NULL DEFAULT 'keywords',
-                keywords TEXT NOT NULL DEFAULT '[]'
+                keywords TEXT NOT NULL DEFAULT '[]',
+                call_text TEXT NOT NULL DEFAULT ''
             )
         """)
+        # Migracion segura: si la tabla ya existia sin la columna, agregarla.
+        try:
+            conn.execute("ALTER TABLE config ADD COLUMN call_text TEXT NOT NULL DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass  # la columna ya existe
         conn.execute("""
             CREATE TABLE IF NOT EXISTS device (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -56,23 +62,25 @@ def get_config():
         "chat_name": row["chat_name"],
         "mode": row["mode"],
         "keywords": json.loads(row["keywords"]),
+        "call_text": row["call_text"] if "call_text" in row.keys() else "",
     }
 
 
-def save_config(chat_id: str, chat_name: str, mode: str, keywords: list):
+def save_config(chat_id: str, chat_name: str, mode: str, keywords: list, call_text: str = ""):
     with _lock:
         conn = _connect()
         conn.execute(
             """
-            INSERT INTO config (id, chat_id, chat_name, mode, keywords)
-            VALUES (1, ?, ?, ?, ?)
+            INSERT INTO config (id, chat_id, chat_name, mode, keywords, call_text)
+            VALUES (1, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 chat_id = excluded.chat_id,
                 chat_name = excluded.chat_name,
                 mode = excluded.mode,
-                keywords = excluded.keywords
+                keywords = excluded.keywords,
+                call_text = excluded.call_text
             """,
-            (chat_id, chat_name, mode, json.dumps(keywords)),
+            (chat_id, chat_name, mode, json.dumps(keywords), call_text),
         )
         conn.commit()
         conn.close()
