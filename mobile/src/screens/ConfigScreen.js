@@ -115,12 +115,18 @@ export default function ConfigScreen({ navigation }) {
       {mode === 'keywords' && (
         <View>
           <Text style={styles.label}>Palabras clave</Text>
+          <Text style={styles.hint}>
+            Sé muy específico: escribe la frase EXACTA que dispara la alarma
+            (ej: "XAUUSD SELL"), no una palabra suelta como "XAUUSD" que
+            aparece en cualquier comentario. Los espacios de más o los saltos
+            de línea se ignoran, pero el orden de las palabras sí importa.
+          </Text>
           <View style={styles.row}>
             <TextInput
               style={styles.input}
               value={keywordInput}
               onChangeText={setKeywordInput}
-              placeholder="ej: URGENTE"
+              placeholder='ej: XAUUSD SELL'
               onSubmitEditing={addKeyword}
             />
             <TouchableOpacity style={styles.addButton} onPress={addKeyword}>
@@ -157,6 +163,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: '#fff' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   label: { fontSize: 16, fontWeight: '600', marginTop: 12, marginBottom: 6 },
+  hint: { fontSize: 13, color: '#666', marginBottom: 8, lineHeight: 18 },
   chatList: { maxHeight: 180, borderWidth: 1, borderColor: '#ddd', borderRadius: 8 },
   chatItem: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
   chatItemSelected: { backgroundColor: '#e3f2fd' },

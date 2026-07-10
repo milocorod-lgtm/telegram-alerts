@@ -41,10 +41,17 @@ async def list_dialogs():
     ]
 
 
+def _normalize(s: str) -> str:
+    """Colapsa cualquier secuencia de espacios/tabs/saltos de linea en un solo
+    espacio. Asi 'XAUUSD  SELL' (doble espacio) o 'XAUUSD\\nSELL' (en dos
+    renglones) coinciden con la keyword 'XAUUSD SELL'."""
+    return " ".join(s.split())
+
+
 def _matched_keyword(text: str, keywords: list):
-    lower = text.lower()
+    lower = _normalize(text).lower()
     for kw in keywords:
-        if kw and kw.lower() in lower:
+        if kw and _normalize(kw).lower() in lower:
             return kw
     return None
 
