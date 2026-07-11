@@ -1,4 +1,9 @@
-const { withAndroidManifest, withMainApplication, withDangerousMod } = require('@expo/config-plugins');
+const {
+  withAndroidManifest,
+  withMainApplication,
+  withMainActivity,
+  withDangerousMod,
+} = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
@@ -138,10 +143,46 @@ function withLockScreenActivity(config) {
   });
 }
 
+// Inyecta en MainActivity.onCreate la activacion POR CODIGO de mostrar-sobre-
+// bloqueo, encender pantalla y descartar el candado. Los atributos del manifest
+// no bastan en Samsung; esto es lo que hace que la alarma aparezca sobre el
+// bloqueo y encienda la pantalla cuando llega por el intent de pantalla completa.
+const LOCK_SNIPPET = [
+  '',
+  '    // --- TelegramAlarm: mostrar sobre el bloqueo y encender la pantalla ---',
+  '    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O_MR1) {',
+  '      setShowWhenLocked(true)',
+  '      setTurnScreenOn(true)',
+  '    } else {',
+  '      window.addFlags(',
+  '        android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or',
+  '        android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON',
+  '      )',
+  '    }',
+  '    (getSystemService(android.content.Context.KEYGUARD_SERVICE) as android.app.KeyguardManager)',
+  '      .requestDismissKeyguard(this, null)',
+].join('\n');
+
+function withLockScreenMainActivity(config) {
+  return withMainActivity(config, (config) => {
+    let src = config.modResults.contents;
+    if (src.includes('setShowWhenLocked(true)')) {
+      return config;
+    }
+    if (!src.includes('super.onCreate(null)')) {
+      throw new Error('withCallKeep: no se encontro super.onCreate(null) en MainActivity');
+    }
+    src = src.replace('super.onCreate(null)', 'super.onCreate(null)\n' + LOCK_SNIPPET);
+    config.modResults.contents = src;
+    return config;
+  });
+}
+
 module.exports = function withCallKeep(config) {
   config = withCallKeepManifest(config);
   config = withRingtonePickerNativeFiles(config);
   config = withRingtonePickerRegistration(config);
   config = withLockScreenActivity(config);
+  config = withLockScreenMainActivity(config);
   return config;
 };

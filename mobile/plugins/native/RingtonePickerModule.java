@@ -18,8 +18,12 @@ import com.facebook.react.bridge.WritableMap;
 
 public class RingtonePickerModule extends ReactContextBaseJavaModule implements ActivityEventListener {
     private static final int REQUEST_CODE = 4201;
+    // Veces maximas que suena el tono antes de apagarse solo (evita que quede
+    // sonando para siempre si nadie contesta, incluso en segundo plano).
+    private static final int MAX_PLAYS = 2;
     private Promise pickPromise;
     private MediaPlayer mediaPlayer;
+    private int playCount = 0;
 
     RingtonePickerModule(ReactApplicationContext context) {
         super(context);
@@ -77,6 +81,7 @@ public class RingtonePickerModule extends ReactContextBaseJavaModule implements 
             Uri uri = uriString != null && !uriString.isEmpty()
                     ? Uri.parse(uriString)
                     : RingtoneManager.getActualDefaultRingtoneUri(getReactApplicationContext(), RingtoneManager.TYPE_RINGTONE);
+            playCount = 0;
             mediaPlayer = new MediaPlayer();
             mediaPlayer.setAudioAttributes(
                     new AudioAttributes.Builder()
@@ -85,7 +90,26 @@ public class RingtonePickerModule extends ReactContextBaseJavaModule implements 
                             .build()
             );
             mediaPlayer.setDataSource(getReactApplicationContext(), uri);
-            mediaPlayer.setLooping(true);
+            // No hacemos loop infinito: contamos reproducciones y paramos a las
+            // MAX_PLAYS. Esto vive en nativo, asi que se apaga solo aunque el
+            // contexto de JavaScript ya haya muerto (push en segundo plano).
+            mediaPlayer.setLooping(false);
+            mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mp) {
+                    playCount++;
+                    if (playCount < MAX_PLAYS && mediaPlayer != null) {
+                        try {
+                            mediaPlayer.seekTo(0);
+                            mediaPlayer.start();
+                        } catch (Exception e) {
+                            stopRingtone();
+                        }
+                    } else {
+                        stopRingtone();
+                    }
+                }
+            });
             mediaPlayer.prepare();
             mediaPlayer.start();
         } catch (Exception e) {
