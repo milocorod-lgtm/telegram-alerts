@@ -16,21 +16,17 @@ def _connect():
 def init_db():
     with _lock:
         conn = _connect()
+        # Cada "regla" = un canal a monitorear con sus palabras y su texto.
         conn.execute("""
-            CREATE TABLE IF NOT EXISTS config (
-                id INTEGER PRIMARY KEY CHECK (id = 1),
-                chat_id TEXT,
+            CREATE TABLE IF NOT EXISTS rules (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                chat_id TEXT NOT NULL,
                 chat_name TEXT,
                 mode TEXT NOT NULL DEFAULT 'keywords',
                 keywords TEXT NOT NULL DEFAULT '[]',
                 call_text TEXT NOT NULL DEFAULT ''
             )
         """)
-        # Migracion segura: si la tabla ya existia sin la columna, agregarla.
-        try:
-            conn.execute("ALTER TABLE config ADD COLUMN call_text TEXT NOT NULL DEFAULT ''")
-        except sqlite3.OperationalError:
-            pass  # la columna ya existe
         conn.execute("""
             CREATE TABLE IF NOT EXISTS device (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -50,38 +46,63 @@ def init_db():
         conn.close()
 
 
-def get_config():
-    with _lock:
-        conn = _connect()
-        row = conn.execute("SELECT * FROM config WHERE id = 1").fetchone()
-        conn.close()
-    if not row:
-        return None
+def _row_to_rule(row):
     return {
+        "id": row["id"],
         "chat_id": row["chat_id"],
         "chat_name": row["chat_name"],
         "mode": row["mode"],
         "keywords": json.loads(row["keywords"]),
-        "call_text": row["call_text"] if "call_text" in row.keys() else "",
+        "call_text": row["call_text"],
     }
 
 
-def save_config(chat_id: str, chat_name: str, mode: str, keywords: list, call_text: str = ""):
+def list_rules():
     with _lock:
         conn = _connect()
-        conn.execute(
+        rows = conn.execute("SELECT * FROM rules ORDER BY id ASC").fetchall()
+        conn.close()
+    return [_row_to_rule(r) for r in rows]
+
+
+def rules_for_chat(chat_id: str):
+    with _lock:
+        conn = _connect()
+        rows = conn.execute("SELECT * FROM rules WHERE chat_id = ?", (str(chat_id),)).fetchall()
+        conn.close()
+    return [_row_to_rule(r) for r in rows]
+
+
+def add_rule(chat_id: str, chat_name: str, mode: str, keywords: list, call_text: str = ""):
+    with _lock:
+        conn = _connect()
+        cur = conn.execute(
             """
-            INSERT INTO config (id, chat_id, chat_name, mode, keywords, call_text)
-            VALUES (1, ?, ?, ?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET
-                chat_id = excluded.chat_id,
-                chat_name = excluded.chat_name,
-                mode = excluded.mode,
-                keywords = excluded.keywords,
-                call_text = excluded.call_text
+            INSERT INTO rules (chat_id, chat_name, mode, keywords, call_text)
+            VALUES (?, ?, ?, ?, ?)
             """,
-            (chat_id, chat_name, mode, json.dumps(keywords), call_text),
+            (str(chat_id), chat_name, mode, json.dumps(keywords), call_text),
         )
+        rule_id = cur.lastrowid
+        conn.commit()
+        conn.close()
+    return rule_id
+
+
+def delete_rule(rule_id: int):
+    with _lock:
+        conn = _connect()
+        conn.execute("DELETE FROM rules WHERE id = ?", (rule_id,))
+        conn.commit()
+        conn.close()
+
+
+def clear_all():
+    """Borrar todo: reglas + historial (el token del dispositivo se conserva)."""
+    with _lock:
+        conn = _connect()
+        conn.execute("DELETE FROM rules")
+        conn.execute("DELETE FROM history")
         conn.commit()
         conn.close()
 

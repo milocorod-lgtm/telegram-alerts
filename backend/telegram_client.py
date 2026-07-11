@@ -3,7 +3,7 @@ import os
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 
-from database import get_config, get_device_token, save_history
+from database import get_device_token, rules_for_chat, save_history
 from push import send_alarm_push
 
 API_ID = int(os.environ["TELEGRAM_API_ID"])
@@ -72,26 +72,28 @@ def _matched_keyword(text: str, keywords: list):
 
 
 async def _on_new_message(event):
-    config = get_config()
-    if not config or not config.get("chat_id"):
-        return
-    if str(event.chat_id) != str(config["chat_id"]):
+    # Puede haber VARIAS reglas para el mismo canal; evaluamos todas y disparamos
+    # con la primera que haga match (una sola alarma por mensaje).
+    rules = rules_for_chat(event.chat_id)
+    if not rules:
         return
 
     text = event.raw_text or ""
 
-    if config["mode"] == "all":
-        keyword = "(todo el chat)"
-    else:
-        keyword = _matched_keyword(text, config.get("keywords", []))
-        if not keyword:
+    for rule in rules:
+        if rule["mode"] == "all":
+            keyword = "(todo el chat)"
+        else:
+            keyword = _matched_keyword(text, rule.get("keywords", []))
+            if not keyword:
+                continue
+
+        token = get_device_token()
+        if not token:
             return
 
-    token = get_device_token()
-    if not token:
-        return
-
-    chat_name = config.get("chat_name") or ""
-    call_text = config.get("call_text") or ""
-    save_history(chat_name, keyword, text[:200])
-    send_alarm_push(token, chat_name, keyword, text[:200], call_text)
+        chat_name = rule.get("chat_name") or ""
+        call_text = rule.get("call_text") or ""
+        save_history(chat_name, keyword, text[:200])
+        send_alarm_push(token, chat_name, keyword, text[:200], call_text)
+        return  # una alarma por mensaje

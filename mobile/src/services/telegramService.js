@@ -15,12 +15,12 @@ export function fetchChats() {
   return request('/api/chats');
 }
 
-export function fetchConfig() {
-  return request('/api/config');
+export function fetchRules() {
+  return request('/api/rules');
 }
 
-export function saveConfig({ chatId, chatName, mode, keywords, callText }) {
-  return request('/api/config', {
+export function addRule({ chatId, chatName, mode, keywords, callText }) {
+  return request('/api/rules', {
     method: 'POST',
     body: JSON.stringify({
       chat_id: chatId,
@@ -30,6 +30,14 @@ export function saveConfig({ chatId, chatName, mode, keywords, callText }) {
       call_text: callText || '',
     }),
   });
+}
+
+export function deleteRule(id) {
+  return request(`/api/rules/${id}`, { method: 'DELETE' });
+}
+
+export function resetAll() {
+  return request('/api/reset', { method: 'POST' });
 }
 
 export function fetchHistory() {

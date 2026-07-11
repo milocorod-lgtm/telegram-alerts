@@ -4,10 +4,12 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from database import (
-    get_config,
+    add_rule,
+    clear_all,
+    delete_rule,
     init_db,
     list_history,
-    save_config,
+    list_rules,
     save_device_token,
 )
 from telegram_client import list_dialogs, start_telegram_client, stop_telegram_client
@@ -35,7 +37,7 @@ async def get_chats():
     return await list_dialogs()
 
 
-class ConfigIn(BaseModel):
+class RuleIn(BaseModel):
     chat_id: str
     chat_name: str
     mode: str  # "all" | "keywords"
@@ -43,23 +45,29 @@ class ConfigIn(BaseModel):
     call_text: str = ""
 
 
-@app.get("/api/config")
-async def read_config():
-    config = get_config()
-    return config or {
-        "chat_id": None,
-        "chat_name": None,
-        "mode": "keywords",
-        "keywords": [],
-        "call_text": "",
-    }
+@app.get("/api/rules")
+async def read_rules():
+    return list_rules()
 
 
-@app.post("/api/config")
-async def write_config(body: ConfigIn):
+@app.post("/api/rules")
+async def create_rule(body: RuleIn):
     if body.mode not in ("all", "keywords"):
         raise HTTPException(400, "mode debe ser 'all' o 'keywords'")
-    save_config(body.chat_id, body.chat_name, body.mode, body.keywords, body.call_text)
+    rule_id = add_rule(body.chat_id, body.chat_name, body.mode, body.keywords, body.call_text)
+    return {"status": "ok", "id": rule_id}
+
+
+@app.delete("/api/rules/{rule_id}")
+async def remove_rule(rule_id: int):
+    delete_rule(rule_id)
+    return {"status": "ok"}
+
+
+@app.post("/api/reset")
+async def reset_all():
+    """Borrar todo: reglas + historial."""
+    clear_all()
     return {"status": "ok"}
 
 

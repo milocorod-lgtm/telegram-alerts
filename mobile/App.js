@@ -1,12 +1,14 @@
 import React, { useEffect } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Text } from 'react-native';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import notifee, { EventType } from '@notifee/react-native';
 
+import WelcomeScreen from './src/screens/WelcomeScreen';
 import ConfigScreen from './src/screens/ConfigScreen';
+import StatusScreen from './src/screens/StatusScreen';
 import AlarmScreen from './src/screens/AlarmScreen';
-import HistoryScreen from './src/screens/HistoryScreen';
 import { initPush, onForegroundAlarm } from './src/services/pushService';
 import { stopAlarmSound } from './src/services/alarmService';
 import {
@@ -16,7 +18,8 @@ import {
   clearAlarmNotification,
 } from './src/services/fullScreenAlarm';
 
-const Stack = createNativeStackNavigator();
+const RootStack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
 const navigationRef = createNavigationContainerRef();
 
 function goToAlarm({ chatName, keyword, callText }) {
@@ -25,19 +28,43 @@ function goToAlarm({ chatName, keyword, callText }) {
   }
 }
 
+function tabIcon(emoji) {
+  return ({ focused }) => <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.5 }}>{emoji}</Text>;
+}
+
+function MainTabs() {
+  return (
+    <Tab.Navigator screenOptions={{ tabBarActiveTintColor: '#1976d2' }}>
+      <Tab.Screen
+        name="Inicio"
+        component={WelcomeScreen}
+        options={{ tabBarIcon: tabIcon('🏠') }}
+      />
+      <Tab.Screen
+        name="Configurar"
+        component={ConfigScreen}
+        options={{ tabBarIcon: tabIcon('⚙️') }}
+      />
+      <Tab.Screen
+        name="Estado"
+        component={StatusScreen}
+        options={{ tabBarIcon: tabIcon('📋') }}
+      />
+    </Tab.Navigator>
+  );
+}
+
 export default function App() {
   useEffect(() => {
     ensureAlarmChannel();
     ensureFullScreenPermission();
     initPush().catch(() => {});
 
-    // Push recibido con la app en primer plano.
     const unsubForeground = onForegroundAlarm((remoteMessage) => {
       const data = remoteMessage.data || {};
       goToAlarm({ chatName: data.chat_name, keyword: data.keyword, callText: data.call_text });
     });
 
-    // Acciones de la notificacion con la app en primer plano.
     const unsubNotifee = notifee.onForegroundEvent(async ({ type, detail }) => {
       const actionId = detail && detail.pressAction && detail.pressAction.id;
       if (type === EventType.DISMISSED || actionId === 'reject') {
@@ -46,8 +73,7 @@ export default function App() {
       }
     });
 
-    // Cada vez que la app vuelve al frente (al abrir o al DESBLOQUEAR), si hay
-    // una alarma reciente sin atender, mostramos la pantalla de llamada de una.
+    // Al volver al frente (abrir o DESBLOQUEAR): si hay alarma pendiente, mostrarla.
     const appStateSub = AppState.addEventListener('change', async (state) => {
       if (state === 'active') {
         const pending = await getPendingAlarm();
@@ -62,22 +88,21 @@ export default function App() {
     };
   }, []);
 
-  // Cuando la navegacion esta lista (incluye el arranque por el intent de
-  // pantalla completa), revisamos si hay una alarma pendiente que mostrar.
   async function onNavReady() {
     const pending = await getPendingAlarm();
-    if (pending) {
-      goToAlarm(pending);
-    }
+    if (pending) goToAlarm(pending);
   }
 
   return (
     <NavigationContainer ref={navigationRef} onReady={onNavReady}>
-      <Stack.Navigator initialRouteName="Config">
-        <Stack.Screen name="Config" component={ConfigScreen} options={{ title: 'Configuracion' }} />
-        <Stack.Screen name="Alarm" component={AlarmScreen} options={{ title: 'Alarma', headerShown: false }} />
-        <Stack.Screen name="History" component={HistoryScreen} options={{ title: 'Historial' }} />
-      </Stack.Navigator>
+      <RootStack.Navigator>
+        <RootStack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
+        <RootStack.Screen
+          name="Alarm"
+          component={AlarmScreen}
+          options={{ headerShown: false, presentation: 'fullScreenModal' }}
+        />
+      </RootStack.Navigator>
     </NavigationContainer>
   );
 }

@@ -9,8 +9,18 @@ import {
   Switch,
   ActivityIndicator,
   Alert,
+  ScrollView,
 } from 'react-native';
-import { fetchChats, fetchConfig, saveConfig } from '../services/telegramService';
+import { fetchChats, addRule } from '../services/telegramService';
+import {
+  getRingtonePreference,
+  setRingtonePreference,
+  getVibrationPreference,
+  setVibrationPreference,
+  pickRingtone,
+  previewRingtone,
+  stopPreview,
+} from '../services/alarmService';
 
 export default function ConfigScreen({ navigation }) {
   const [chats, setChats] = useState([]);
@@ -21,27 +31,53 @@ export default function ConfigScreen({ navigation }) {
   const [callText, setCallText] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [ringtone, setRingtone] = useState(null);
+  const [vibration, setVibration] = useState(true);
 
   useEffect(() => {
     load();
+    (async () => {
+      setRingtone(await getRingtonePreference());
+      setVibration(await getVibrationPreference());
+    })();
+    return () => stopPreview();
   }, []);
 
   async function load() {
     setLoading(true);
     try {
-      const [chatList, config] = await Promise.all([fetchChats(), fetchConfig()]);
+      const chatList = await fetchChats();
       setChats(chatList);
-      if (config.chat_id) {
-        setSelectedChat({ chat_id: config.chat_id, name: config.chat_name });
-      }
-      setMode(config.mode || 'keywords');
-      setKeywords(config.keywords || []);
-      setCallText(config.call_text || '');
     } catch (e) {
       Alert.alert('Error', 'No se pudo conectar con el backend: ' + e.message);
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handlePickTone() {
+    try {
+      const result = await pickRingtone(ringtone && ringtone.uri);
+      if (result) {
+        setRingtone(result);
+        await setRingtonePreference(result);
+      }
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo abrir el selector de tonos: ' + e.message);
+    }
+  }
+
+  function handlePreviewTone() {
+    try {
+      previewRingtone(ringtone && ringtone.uri);
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo reproducir el tono: ' + e.message);
+    }
+  }
+
+  async function handleVibrationToggle(value) {
+    setVibration(value);
+    await setVibrationPreference(value);
   }
 
   function addKeyword() {
@@ -57,21 +93,36 @@ export default function ConfigScreen({ navigation }) {
     setKeywords(keywords.filter((k) => k !== word));
   }
 
+  function resetForm() {
+    setSelectedChat(null);
+    setMode('keywords');
+    setKeywords([]);
+    setKeywordInput('');
+    setCallText('');
+  }
+
   async function handleSave() {
     if (!selectedChat) {
-      Alert.alert('Falta el chat', 'Elige el chat o canal a monitorear');
+      Alert.alert('Falta el canal', 'Elige el canal a monitorear');
+      return;
+    }
+    if (mode === 'keywords' && keywords.length === 0) {
+      Alert.alert('Faltan palabras', 'Agrega al menos una palabra clave, o activa "Todo el chat"');
       return;
     }
     setSaving(true);
     try {
-      await saveConfig({
+      await addRule({
         chatId: selectedChat.chat_id,
         chatName: selectedChat.name,
         mode,
         keywords,
         callText,
       });
-      Alert.alert('Guardado', 'La configuracion se guardo correctamente');
+      Alert.alert('Guardado', 'Canal agregado. Puedes ver todo en la pestaña "Estado".', [
+        { text: 'Agregar otro', onPress: resetForm },
+        { text: 'Ver Estado', onPress: () => navigation.navigate('Estado') },
+      ]);
     } catch (e) {
       Alert.alert('Error', 'No se pudo guardar: ' + e.message);
     } finally {
@@ -88,27 +139,26 @@ export default function ConfigScreen({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>Chat / canal a monitorear</Text>
-      <FlatList
-        data={chats}
-        keyExtractor={(item) => item.chat_id}
-        style={styles.chatList}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.chatItem,
-              selectedChat && selectedChat.chat_id === item.chat_id && styles.chatItemSelected,
-            ]}
-            onPress={() => setSelectedChat(item)}
-          >
-            <Text>{item.name}</Text>
-          </TouchableOpacity>
-        )}
-        ListEmptyComponent={
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+      <Text style={styles.label}>Canal a monitorear</Text>
+      <View style={styles.chatList}>
+        {chats.length === 0 ? (
           <Text style={styles.empty}>No se encontraron chats. Revisa que el backend este conectado.</Text>
-        }
-      />
+        ) : (
+          chats.map((item) => (
+            <TouchableOpacity
+              key={item.chat_id}
+              style={[
+                styles.chatItem,
+                selectedChat && selectedChat.chat_id === item.chat_id && styles.chatItemSelected,
+              ]}
+              onPress={() => setSelectedChat(item)}
+            >
+              <Text>{item.name}</Text>
+            </TouchableOpacity>
+          ))
+        )}
+      </View>
 
       <View style={styles.row}>
         <Text style={styles.label}>Todo el chat</Text>
@@ -119,17 +169,16 @@ export default function ConfigScreen({ navigation }) {
         <View>
           <Text style={styles.label}>Palabras clave</Text>
           <Text style={styles.hint}>
-            Sé muy específico: escribe la frase EXACTA que dispara la alarma
-            (ej: "XAUUSD SELL"), no una palabra suelta como "XAUUSD" que
-            aparece en cualquier comentario. Los espacios de más o los saltos
-            de línea se ignoran, pero el orden de las palabras sí importa.
+            Sé muy específico: escribe la frase EXACTA que dispara la alarma (ej:
+            "XAUUSD SELL"), no una palabra suelta. Los espacios de más y saltos de
+            línea se ignoran, pero el orden de las palabras sí importa.
           </Text>
           <View style={styles.row}>
             <TextInput
               style={styles.input}
               value={keywordInput}
               onChangeText={setKeywordInput}
-              placeholder='ej: XAUUSD SELL'
+              placeholder="ej: XAUUSD SELL"
               onSubmitEditing={addKeyword}
             />
             <TouchableOpacity style={styles.addButton} onPress={addKeyword}>
@@ -146,32 +195,42 @@ export default function ConfigScreen({ navigation }) {
         </View>
       )}
 
-      <Text style={styles.label}>Texto que aparece en la llamada</Text>
+      <Text style={styles.label}>Texto que aparece en la alerta</Text>
       <Text style={styles.hint}>
-        Lo que veras en la pantalla de la alarma cuando se dispare (ej: "A
-        trabajar Senal de Trading"). Si lo dejas vacio, se muestra el chat y la
-        palabra detectada.
+        Lo que veras cuando se dispare (ej: "A trabajar Señal de Trading"). Si lo
+        dejas vacio, se muestra el canal y la palabra detectada.
       </Text>
       <TextInput
         style={styles.callTextInput}
         value={callText}
         onChangeText={setCallText}
-        placeholder="A trabajar Senal de Trading"
+        placeholder="A trabajar Señal de Trading"
       />
 
       <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={saving}>
-        <Text style={styles.saveButtonText}>{saving ? 'Guardando...' : 'Guardar'}</Text>
+        <Text style={styles.saveButtonText}>{saving ? 'Guardando...' : 'Guardar canal'}</Text>
       </TouchableOpacity>
 
-      <View style={styles.navRow}>
-        <TouchableOpacity onPress={() => navigation.navigate('Alarm', {})}>
-          <Text style={styles.navLink}>Configurar alarma</Text>
+      <View style={styles.divider} />
+
+      <Text style={styles.sectionTitle}>Tono y vibración (para todas las alertas)</Text>
+      <Text style={styles.ringtoneName}>{(ringtone && ringtone.title) || 'Tono predeterminado'}</Text>
+      <View style={styles.toneRow}>
+        <TouchableOpacity style={styles.toneButton} onPress={handlePickTone}>
+          <Text style={styles.toneButtonText}>Elegir tono</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('History')}>
-          <Text style={styles.navLink}>Ver historial</Text>
+        <TouchableOpacity style={[styles.toneButton, styles.toneSecondary]} onPress={handlePreviewTone}>
+          <Text style={styles.toneButtonText}>Escuchar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.toneButton, styles.toneSecondary]} onPress={stopPreview}>
+          <Text style={styles.toneButtonText}>Detener</Text>
         </TouchableOpacity>
       </View>
-    </View>
+      <View style={styles.row}>
+        <Text style={styles.label}>Vibración</Text>
+        <Switch value={vibration} onValueChange={handleVibrationToggle} />
+      </View>
+    </ScrollView>
   );
 }
 
@@ -180,7 +239,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   label: { fontSize: 16, fontWeight: '600', marginTop: 12, marginBottom: 6 },
   hint: { fontSize: 13, color: '#666', marginBottom: 8, lineHeight: 18 },
-  chatList: { maxHeight: 180, borderWidth: 1, borderColor: '#ddd', borderRadius: 8 },
+  chatList: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8 },
   chatItem: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
   chatItemSelected: { backgroundColor: '#e3f2fd' },
   empty: { padding: 12, color: '#888' },
@@ -201,6 +260,11 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 14 },
   saveButton: { backgroundColor: '#2e7d32', borderRadius: 8, padding: 14, marginTop: 20, alignItems: 'center' },
   saveButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  navRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24 },
-  navLink: { color: '#1976d2', fontWeight: '600' },
+  divider: { height: 1, backgroundColor: '#eee', marginVertical: 24 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 6 },
+  ringtoneName: { fontSize: 14, color: '#555', marginBottom: 10 },
+  toneRow: { flexDirection: 'row', flexWrap: 'wrap' },
+  toneButton: { backgroundColor: '#1976d2', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 14, marginRight: 8, marginBottom: 8 },
+  toneSecondary: { backgroundColor: '#555' },
+  toneButtonText: { color: '#fff', fontWeight: '600' },
 });
