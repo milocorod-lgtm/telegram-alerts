@@ -7,6 +7,8 @@ import android.media.MediaPlayer;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 
 import com.facebook.react.bridge.ActivityEventListener;
 import com.facebook.react.bridge.Arguments;
@@ -18,12 +20,22 @@ import com.facebook.react.bridge.WritableMap;
 
 public class RingtonePickerModule extends ReactContextBaseJavaModule implements ActivityEventListener {
     private static final int REQUEST_CODE = 4201;
-    // Veces maximas que suena el tono antes de apagarse solo (evita que quede
-    // sonando para siempre si nadie contesta, incluso en segundo plano).
+    // Veces maximas que suena el tono antes de apagarse solo.
     private static final int MAX_PLAYS = 2;
+    // Tope duro por TIEMPO: pase lo que pase, a los 15 s se apaga. Este
+    // temporizador es nativo, asi que funciona aunque Android mate el
+    // JavaScript (push en segundo plano / pantalla bloqueada).
+    private static final long MAX_MILLIS = 15000;
     private Promise pickPromise;
     private MediaPlayer mediaPlayer;
     private int playCount = 0;
+    private final Handler stopHandler = new Handler(Looper.getMainLooper());
+    private final Runnable stopRunnable = new Runnable() {
+        @Override
+        public void run() {
+            stopRingtone();
+        }
+    };
 
     RingtonePickerModule(ReactApplicationContext context) {
         super(context);
@@ -112,6 +124,9 @@ public class RingtonePickerModule extends ReactContextBaseJavaModule implements 
             });
             mediaPlayer.prepare();
             mediaPlayer.start();
+            // Tope duro por tiempo: apagar sí o sí a los MAX_MILLIS.
+            stopHandler.removeCallbacks(stopRunnable);
+            stopHandler.postDelayed(stopRunnable, MAX_MILLIS);
         } catch (Exception e) {
             stopRingtone();
         }
@@ -119,6 +134,7 @@ public class RingtonePickerModule extends ReactContextBaseJavaModule implements 
 
     @ReactMethod
     public void stopRingtone() {
+        stopHandler.removeCallbacks(stopRunnable);
         if (mediaPlayer != null) {
             try {
                 if (mediaPlayer.isPlaying()) {
