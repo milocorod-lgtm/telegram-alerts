@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import notifee, { EventType } from '@notifee/react-native';
@@ -45,9 +46,19 @@ export default function App() {
       }
     });
 
+    // Cada vez que la app vuelve al frente (al abrir o al DESBLOQUEAR), si hay
+    // una alarma reciente sin atender, mostramos la pantalla de llamada de una.
+    const appStateSub = AppState.addEventListener('change', async (state) => {
+      if (state === 'active') {
+        const pending = await getPendingAlarm();
+        if (pending) goToAlarm(pending);
+      }
+    });
+
     return () => {
       unsubForeground();
       unsubNotifee();
+      appStateSub.remove();
     };
   }, []);
 
