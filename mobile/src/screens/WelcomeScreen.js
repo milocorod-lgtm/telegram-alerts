@@ -1,79 +1,140 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
+import theme from '../theme';
+
+const STEPS = [
+  {
+    n: '1',
+    t: 'Elige tus canales',
+    d: 'En Configurar seleccionas un canal y las palabras clave a vigilar (ej: "XAUUSD SELL").',
+  },
+  {
+    n: '2',
+    t: 'Varios a la vez',
+    d: 'Agrega múltiples canales, cada uno con sus propias palabras y su texto de alerta.',
+  },
+  {
+    n: '3',
+    t: 'Suena y avisa',
+    d: 'Cuando llega un mensaje con esas palabras, tu celular suena y te muestra la alerta.',
+  },
+  {
+    n: '4',
+    t: 'Todo bajo control',
+    d: 'En Estado ves lo que tienes activo y el historial completo de alertas.',
+  },
+];
 
 export default function WelcomeScreen({ navigation }) {
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.title}>TelegramAlarm</Text>
-      <Text style={styles.subtitle}>
-        Convierte los mensajes importantes de Telegram en una alarma que suena en tu
-        celular.
-      </Text>
+    <View style={styles.root}>
+      <StatusBar style="light" />
+      <ScrollView contentContainerStyle={{ paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
+        <LinearGradient colors={theme.gradHero} style={styles.hero}>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>◆ SEÑALES EN TIEMPO REAL</Text>
+          </View>
+          <Text style={styles.brand}>TelegramAlarm</Text>
+          <Text style={styles.tagline}>
+            Convierte los mensajes clave de Telegram en una alarma imposible de ignorar.
+          </Text>
+        </LinearGradient>
 
-      <Text style={styles.sectionTitle}>Cómo funciona</Text>
+        <View style={styles.body}>
+          <Text style={styles.sectionTitle}>CÓMO FUNCIONA</Text>
 
-      <View style={styles.step}>
-        <Text style={styles.stepNum}>1</Text>
-        <Text style={styles.stepText}>
-          En la pestaña <Text style={styles.bold}>Configurar</Text> eliges un canal y
-          las palabras clave que quieres vigilar (ej: "XAUUSD SELL").
-        </Text>
-      </View>
-      <View style={styles.step}>
-        <Text style={styles.stepNum}>2</Text>
-        <Text style={styles.stepText}>
-          Puedes agregar <Text style={styles.bold}>varios canales</Text>, cada uno con
-          sus propias palabras y su propio texto de alerta.
-        </Text>
-      </View>
-      <View style={styles.step}>
-        <Text style={styles.stepNum}>3</Text>
-        <Text style={styles.stepText}>
-          Cuando llegue un mensaje con esas palabras, tu celular{' '}
-          <Text style={styles.bold}>suena y te muestra una alerta</Text> con el texto.
-        </Text>
-      </View>
-      <View style={styles.step}>
-        <Text style={styles.stepNum}>4</Text>
-        <Text style={styles.stepText}>
-          En la pestaña <Text style={styles.bold}>Estado</Text> ves todo lo que tienes
-          configurado y el historial de alertas.
-        </Text>
-      </View>
+          {STEPS.map((s) => (
+            <View key={s.n} style={styles.card}>
+              <LinearGradient colors={theme.gradPrimary} style={styles.stepNum}>
+                <Text style={styles.stepNumText}>{s.n}</Text>
+              </LinearGradient>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.stepTitle}>{s.t}</Text>
+                <Text style={styles.stepDesc}>{s.d}</Text>
+              </View>
+            </View>
+          ))}
 
-      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Configurar')}>
-        <Text style={styles.buttonText}>Configurar mi primer canal</Text>
-      </TouchableOpacity>
+          <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('Configurar')}>
+            <LinearGradient
+              colors={theme.gradPrimary}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.cta}
+            >
+              <Text style={styles.ctaText}>Configurar mi primer canal</Text>
+            </LinearGradient>
+          </TouchableOpacity>
 
-      <Text style={styles.note}>
-        Consejo: para que las alarmas lleguen con la pantalla bloqueada, deja la app en
-        "Batería: Sin restricciones" y activa "Notificaciones de pantalla completa" en
-        los ajustes de Android.
-      </Text>
-    </ScrollView>
+          <View style={styles.tipBox}>
+            <Text style={styles.tipTitle}>◆ Para que suene bloqueado</Text>
+            <Text style={styles.tipText}>
+              Deja la app en Batería “Sin restricciones” y activa “Notificaciones de pantalla
+              completa” en los ajustes de Android.
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#1976d2', marginTop: 12 },
-  subtitle: { fontSize: 15, color: '#444', marginTop: 8, lineHeight: 21 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginTop: 24, marginBottom: 8 },
-  step: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 14 },
-  stepNum: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#1976d2',
-    color: '#fff',
-    textAlign: 'center',
-    lineHeight: 26,
-    fontWeight: 'bold',
-    marginRight: 12,
+  root: { flex: 1, backgroundColor: theme.bg },
+  hero: { paddingTop: 56, paddingBottom: 34, paddingHorizontal: 24 },
+  badge: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: theme.borderStrong,
+    borderRadius: 20,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    marginBottom: 16,
   },
-  stepText: { flex: 1, fontSize: 15, color: '#333', lineHeight: 21 },
-  bold: { fontWeight: '700', color: '#111' },
-  button: { backgroundColor: '#2e7d32', borderRadius: 8, padding: 16, marginTop: 20, alignItems: 'center' },
-  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  note: { fontSize: 13, color: '#888', marginTop: 20, lineHeight: 19 },
+  badgeText: { color: theme.gold, fontSize: 11, fontWeight: '700', letterSpacing: 1.5 },
+  brand: { color: theme.text, fontSize: 34, fontWeight: '800', letterSpacing: 0.5 },
+  tagline: { color: theme.textDim, fontSize: 15, lineHeight: 22, marginTop: 10, maxWidth: 320 },
+  body: { paddingHorizontal: 20, paddingTop: 24 },
+  sectionTitle: {
+    color: theme.textMuted,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 2,
+    marginBottom: 14,
+  },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+  },
+  stepNum: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  stepNumText: { color: '#04121F', fontWeight: '900', fontSize: 16 },
+  stepTitle: { color: theme.text, fontSize: 16, fontWeight: '700', marginBottom: 3 },
+  stepDesc: { color: theme.textDim, fontSize: 14, lineHeight: 20 },
+  cta: { borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 12 },
+  ctaText: { color: '#04121F', fontWeight: '800', fontSize: 16, letterSpacing: 0.3 },
+  tipBox: {
+    backgroundColor: 'rgba(230, 200, 120, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(230, 200, 120, 0.22)',
+    borderRadius: 14,
+    padding: 16,
+    marginTop: 22,
+  },
+  tipTitle: { color: theme.gold, fontWeight: '700', fontSize: 13, marginBottom: 6, letterSpacing: 0.5 },
+  tipText: { color: theme.textDim, fontSize: 13, lineHeight: 19 },
 });

@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import { AppState, Text } from 'react-native';
-import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import notifee, { EventType } from '@notifee/react-native';
+import theme from './src/theme';
 
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import ConfigScreen from './src/screens/ConfigScreen';
@@ -34,25 +35,33 @@ function tabIcon(emoji) {
 
 function MainTabs() {
   return (
-    <Tab.Navigator screenOptions={{ tabBarActiveTintColor: '#1976d2' }}>
-      <Tab.Screen
-        name="Inicio"
-        component={WelcomeScreen}
-        options={{ tabBarIcon: tabIcon('🏠') }}
-      />
-      <Tab.Screen
-        name="Configurar"
-        component={ConfigScreen}
-        options={{ tabBarIcon: tabIcon('⚙️') }}
-      />
-      <Tab.Screen
-        name="Estado"
-        component={StatusScreen}
-        options={{ tabBarIcon: tabIcon('📋') }}
-      />
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: theme.cyan,
+        tabBarInactiveTintColor: theme.textMuted,
+        tabBarStyle: {
+          backgroundColor: theme.bgHero,
+          borderTopColor: theme.border,
+          borderTopWidth: 1,
+          height: 64,
+          paddingBottom: 8,
+          paddingTop: 6,
+        },
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
+      }}
+    >
+      <Tab.Screen name="Inicio" component={WelcomeScreen} options={{ tabBarIcon: tabIcon('🏠') }} />
+      <Tab.Screen name="Configurar" component={ConfigScreen} options={{ tabBarIcon: tabIcon('⚙️') }} />
+      <Tab.Screen name="Estado" component={StatusScreen} options={{ tabBarIcon: tabIcon('📋') }} />
     </Tab.Navigator>
   );
 }
+
+const navTheme = {
+  ...DarkTheme,
+  colors: { ...DarkTheme.colors, background: theme.bg, card: theme.bgHero, text: theme.text, border: theme.border, primary: theme.cyan },
+};
 
 export default function App() {
   useEffect(() => {
@@ -94,7 +103,7 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef} onReady={onNavReady}>
+    <NavigationContainer ref={navigationRef} onReady={onNavReady} theme={navTheme}>
       <RootStack.Navigator>
         <RootStack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
         <RootStack.Screen
