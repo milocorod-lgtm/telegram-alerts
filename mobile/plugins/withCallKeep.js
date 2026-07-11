@@ -121,9 +121,27 @@ function withRingtonePickerRegistration(config) {
   });
 }
 
+// Permite que la MainActivity se dibuje SOBRE la pantalla de bloqueo y encienda
+// la pantalla (necesario para la alarma de pantalla completa via Notifee).
+function withLockScreenActivity(config) {
+  return withAndroidManifest(config, (config) => {
+    const app = config.modResults.manifest.application[0];
+    const activities = app.activity || [];
+    for (const act of activities) {
+      const name = act.$ && act.$['android:name'];
+      if (name && name.endsWith('MainActivity')) {
+        act.$['android:showWhenLocked'] = 'true';
+        act.$['android:turnScreenOn'] = 'true';
+      }
+    }
+    return config;
+  });
+}
+
 module.exports = function withCallKeep(config) {
   config = withCallKeepManifest(config);
   config = withRingtonePickerNativeFiles(config);
   config = withRingtonePickerRegistration(config);
+  config = withLockScreenActivity(config);
   return config;
 };

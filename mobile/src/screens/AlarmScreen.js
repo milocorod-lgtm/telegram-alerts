@@ -8,11 +8,9 @@ import {
   pickRingtone,
   previewRingtone,
   stopPreview,
-  answerCall,
-  rejectCall,
-  getActiveCallId,
-  openPhoneAccountSettings,
+  stopAlarmSound,
 } from '../services/alarmService';
+import { clearAlarmNotification } from '../services/fullScreenAlarm';
 
 export default function AlarmScreen({ route, navigation }) {
   const params = route.params || {};
@@ -32,12 +30,14 @@ export default function AlarmScreen({ route, navigation }) {
 
 function IncomingCallView({ chatName, keyword, callText, navigation }) {
   function handleAccept() {
-    answerCall(getActiveCallId());
+    stopAlarmSound();
+    clearAlarmNotification();
     navigation.navigate('Config');
   }
 
   function handleReject() {
-    rejectCall(getActiveCallId());
+    stopAlarmSound();
+    clearAlarmNotification();
     navigation.navigate('Config');
   }
 
@@ -118,15 +118,6 @@ function AlarmSettingsView() {
         <Text style={styles.label}>Vibracion</Text>
         <Switch value={vibration} onValueChange={handleVibrationToggle} />
       </View>
-
-      <Text style={styles.warn}>
-        IMPORTANTE: para que la alarma se vea como una llamada real (incluso con
-        el telefono bloqueado), activa una vez la cuenta de llamadas de
-        TelegramAlarm en los ajustes del sistema.
-      </Text>
-      <TouchableOpacity style={[styles.button, styles.warnButton]} onPress={openPhoneAccountSettings}>
-        <Text style={styles.buttonText}>Activar cuenta de llamadas</Text>
-      </TouchableOpacity>
     </View>
   );
 }

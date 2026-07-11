@@ -1,6 +1,7 @@
 import messaging from '@react-native-firebase/messaging';
 import { registerDevice } from './telegramService';
-import { triggerIncomingCall } from './alarmService';
+import { playAlarmSound } from './alarmService';
+import { displayFullScreenAlarm } from './fullScreenAlarm';
 
 export async function requestNotificationPermission() {
   const authStatus = await messaging().requestPermission();
@@ -22,14 +23,17 @@ export async function initPush() {
   return token;
 }
 
+// Al llegar el push: muestra la notificacion de pantalla completa (que dibuja
+// la pantalla de llamada sobre el bloqueo) y reproduce el tono.
 export async function handleAlarmMessage(remoteMessage) {
   const data = (remoteMessage && remoteMessage.data) || {};
   if (data.type !== 'alarm_trigger') return;
-  await triggerIncomingCall({
+  await displayFullScreenAlarm({
     chatName: data.chat_name,
     keyword: data.keyword,
     callText: data.call_text,
   });
+  await playAlarmSound();
 }
 
 export function onForegroundAlarm(callback) {
