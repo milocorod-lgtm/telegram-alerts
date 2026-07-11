@@ -29,6 +29,11 @@ const callKeepOptions = {
 
 let isSetup = false;
 let activeCallId = null;
+let autoStopTimer = null;
+
+// Segundos tras los cuales la alarma se apaga sola si nadie la contesta
+// (evita que quede sonando para siempre si la pantalla de llamada no aparece).
+const AUTO_STOP_SECONDS = 45;
 
 export async function setupCallKeep() {
   if (isSetup) return;
@@ -157,10 +162,26 @@ export async function triggerIncomingCall({ chatName, keyword, callText }) {
     Vibration.vibrate([500, 1000, 500, 1000], true);
   }
 
+  // Auto-apagado: si nadie contesta en AUTO_STOP_SECONDS, callar todo solo.
+  if (autoStopTimer) clearTimeout(autoStopTimer);
+  autoStopTimer = setTimeout(() => {
+    stopAlarmSound();
+    try {
+      RNCallKeep.endAllCalls();
+    } catch (e) {
+      // no-op
+    }
+    activeCallId = null;
+  }, AUTO_STOP_SECONDS * 1000);
+
   return id;
 }
 
 export function stopAlarmSound() {
+  if (autoStopTimer) {
+    clearTimeout(autoStopTimer);
+    autoStopTimer = null;
+  }
   if (RingtonePickerModule) RingtonePickerModule.stopRingtone();
   Vibration.cancel();
 }
