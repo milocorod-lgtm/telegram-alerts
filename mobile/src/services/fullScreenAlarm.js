@@ -47,11 +47,16 @@ export async function displayFullScreenAlarm({ chatName, keyword, callText }) {
       importance: AndroidImportance.HIGH,
       category: AndroidCategory.CALL,
       visibility: AndroidVisibility.PUBLIC,
-      // Esto es lo que dibuja la pantalla completa sobre el bloqueo:
+      // Intento de pantalla completa (bonus cuando el sistema lo permite).
       fullScreenAction: { id: 'default', launchActivity: 'default' },
+      // Al tocar la notificacion se abre la app (pantalla de llamada).
       pressAction: { id: 'default', launchActivity: 'default' },
-      ongoing: true,
-      autoCancel: false,
+      // NO 'ongoing': asi baja como alerta desplegable visible en el bloqueo.
+      autoCancel: true,
+      actions: [
+        { title: 'Abrir', pressAction: { id: 'default', launchActivity: 'default' } },
+        { title: 'Descartar', pressAction: { id: 'reject' } },
+      ],
     },
   });
 }
