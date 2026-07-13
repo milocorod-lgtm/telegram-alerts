@@ -1,3 +1,6 @@
+import asyncio
+import os
+import urllib.request
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -18,11 +21,40 @@ from push import send_alarm_push
 from telegram_client import list_dialogs, start_telegram_client, stop_telegram_client
 
 
+# --- Auto keep-alive --------------------------------------------------------
+# Render (plan gratis) duerme el servicio tras ~15 min sin tráfico ENTRANTE; y
+# dormido, el userbot de Telegram se desconecta y se pierden las señales. Este
+# bucle hace que el propio backend se pida /api/health por su URL pública cada
+# ~10 min: eso cuenta como tráfico entrante y evita que se duerma. Es la
+# segunda capa (la primera es el workflow de GitHub Actions, que además puede
+# DESPERTARLO si alguna vez llegara a dormirse). Configurable por env.
+SELF_PING_URL = os.environ.get(
+    "SELF_PING_URL", "https://telegram-alerts-backend.onrender.com/api/health"
+)
+KEEPALIVE_SECONDS = int(os.environ.get("KEEPALIVE_SECONDS", "600"))
+
+
+async def _keepalive_loop():
+    while True:
+        try:
+            await asyncio.sleep(KEEPALIVE_SECONDS)
+            await asyncio.to_thread(
+                lambda: urllib.request.urlopen(SELF_PING_URL, timeout=30).read()
+            )
+        except asyncio.CancelledError:
+            break
+        except Exception:
+            # Nunca dejar que un fallo de red tumbe el servicio.
+            pass
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
     await start_telegram_client()
+    keepalive_task = asyncio.create_task(_keepalive_loop())
     yield
+    keepalive_task.cancel()
     await stop_telegram_client()
 
 
