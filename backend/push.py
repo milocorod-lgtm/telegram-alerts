@@ -10,6 +10,11 @@ def init_firebase():
     global _initialized
     if _initialized:
         return
+    # La app puede haber sido inicializada ya por database.py (Firestore) con el
+    # mismo service account. No la inicialices dos veces o firebase-admin lanza.
+    if firebase_admin._apps:
+        _initialized = True
+        return
     cred_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT_PATH", "firebase-service-account.json")
     cred = credentials.Certificate(cred_path)
     firebase_admin.initialize_app(cred)
