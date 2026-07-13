@@ -8,11 +8,13 @@ from database import (
     clear_all,
     db_status,
     delete_rule,
+    get_device_token,
     init_db,
     list_history,
     list_rules,
     save_device_token,
 )
+from push import send_alarm_push
 from telegram_client import list_dialogs, start_telegram_client, stop_telegram_client
 
 
@@ -87,6 +89,26 @@ class DeviceIn(BaseModel):
 async def register_device(body: DeviceIn):
     save_device_token(body.fcm_token)
     return {"status": "ok"}
+
+
+@app.post("/api/test-trigger")
+async def test_trigger():
+    """Dispara una alarma de PRUEBA directo al celular registrado, sin depender
+    de Telegram. Sirve para verificar la cadena token -> FCM -> alarma."""
+    token = get_device_token()
+    if not token:
+        raise HTTPException(400, "No hay dispositivo registrado. Abre la app primero.")
+    try:
+        msg_id = send_alarm_push(
+            token,
+            "PRUEBA",
+            "PRUEBA DE ALARMA",
+            "Esto es una prueba de la alarma.",
+            "Prueba: la alarma funciona",
+        )
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(502, f"Firebase rechazó el push: {e}")
+    return {"status": "ok", "fcm_message_id": msg_id}
 
 
 @app.get("/api/history")
