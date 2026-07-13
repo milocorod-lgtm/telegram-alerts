@@ -175,6 +175,29 @@ def clear_all():
         conn.close()
 
 
+def db_status():
+    """Diagnóstico de solo lectura: motor de BD, si hay token y conteos.
+    NUNCA devuelve la credencial ni el token — solo booleanos/conteos/modo."""
+    with _lock:
+        conn = _connect()
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) AS n FROM rules")
+        rules_n = cur.fetchone()["n"]
+        cur.execute("SELECT COUNT(*) AS n FROM history")
+        hist_n = cur.fetchone()["n"]
+        cur.execute("SELECT fcm_token FROM device WHERE id = 1")
+        row = cur.fetchone()
+        conn.close()
+    token = row["fcm_token"] if row else None
+    return {
+        "db_mode": "postgres" if USE_PG else "sqlite",
+        "persistent": bool(USE_PG),
+        "has_device_token": bool(token),
+        "rules_count": rules_n,
+        "history_count": hist_n,
+    }
+
+
 def get_device_token():
     with _lock:
         conn = _connect()

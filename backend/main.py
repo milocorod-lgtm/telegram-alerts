@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from database import (
     add_rule,
     clear_all,
+    db_status,
     delete_rule,
     init_db,
     list_history,
@@ -30,6 +31,13 @@ app = FastAPI(title="TelegramAlarm Backend", lifespan=lifespan)
 async def health():
     """Usado por el cron externo para mantener el servicio despierto en Render."""
     return {"status": "ok"}
+
+
+@app.get("/api/diag")
+async def diag():
+    """Estado observable del backend: motor de BD (persistente o no),
+    si hay token de dispositivo registrado y conteos. Sin secretos."""
+    return db_status()
 
 
 @app.get("/api/chats")
