@@ -1,0 +1,39 @@
+name: keep-alive
+
+# Mantiene DESPIERTO el backend en Render (plan gratis se duerme tras ~15 min
+# sin tráfico; dormido, el userbot de Telegram se desconecta y se pierden las
+# señales). Este workflow le hace ping cada ~10 min a /api/health.
+#
+# NOTA HONESTA: el cron de GitHub Actions NO es exacto — a veces se retrasa o se
+# salta corridas cuando GitHub está cargado, y se DESHABILITA solo si el repo
+# pasa 60 días sin commits. Por eso conviene además un pinger dedicado
+# (cron-job.org / UptimeRobot). Ver VERSIONES.md.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # cada 10 minutos (UTC)
+  workflow_dispatch:          # permite dispararlo a mano desde la pestaña Actions
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Ping /api/health (despierta Render si estaba dormido)
+        run: |
+          URL="https://telegram-alerts-backend.onrender.com/api/health"
+          for i in $(seq 1 6); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 60 "$URL" || echo "000")
+            echo "intento $i -> HTTP $code"
+            if [ "$code" = "200" ]; then
+              echo "backend despierto ✅"
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "el backend no respondió 200 tras varios reintentos ❌"
+          exit 1
