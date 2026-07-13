@@ -44,7 +44,13 @@ async def list_dialogs():
     )
 
     for d in dialogs:
-        if d.is_channel or d.is_group:
+        # Canales, grupos Y chats privados (persona a persona). Estos ultimos
+        # sirven para PROBAR desde otro celular: le escribes al chat y dispara.
+        if d.is_channel or d.is_group or d.is_user:
+            # El chat contigo mismo ya lo agregamos arriba como "Mensajes
+            # guardados"; no lo dupliquemos.
+            if d.is_user and d.id == me.id:
+                continue
             result.append(
                 {
                     "chat_id": str(d.id),
